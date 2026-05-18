@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Voy! - Panel de Cadetes</title>
+    <!-- Traemos Tailwind para asegurar el diseño -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-900 font-sans min-h-screen flex flex-col items-center justify-start p-4 pt-8">
@@ -25,12 +26,12 @@
     <div class="w-full max-w-sm space-y-6">
         
         <!-- SECCIÓN A: TU VIAJE ACTIVO ACTUAL -->
-        <div class="bg-indigo-950 p-5 rounded-2xl shadow-xl border border-indigo-900 text-left text-white space-y-4">
-            <h2 class="text-sm font-black tracking-widest text-indigo-400 uppercase flex items-center gap-2">
+        <div class="bg-slate-800 p-5 rounded-2xl shadow-xl border border-slate-700 text-left text-white space-y-4">
+            <h2 class="text-xs font-black tracking-widest text-indigo-400 uppercase flex items-center gap-2">
                 📌 Mi Viaje Activo
             </h2>
-            <div id="viaje-activo-contenedor">
-                <p class="text-xs text-indigo-300 italic text-center py-4">No tenés ningún viaje asignado en este momento.</p>
+            <div id="viaje-activo-contenedor" class="text-slate-300">
+                <p class="text-xs italic text-center py-4 text-slate-400">No tenés ningún viaje asignado en este momento.</p>
             </div>
         </div>
 
@@ -46,9 +47,10 @@
 
     </div>
 
+    <!-- CONTROLADOR FIREBASE MÓDULO -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, updateDoc, collection, query, where, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, updateDoc, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBjHsaiCJRWkbdswZzNk6IcqxlkXx20n9o",
@@ -65,8 +67,9 @@
         const listaDisponiblesUI = document.getElementById("lista-disponibles");
         const contenedorActivoUI = document.getElementById("viaje-activo-contenedor");
 
-        // Escucha 1: Pedidos con estado 'buscando_cadete'
-        const qDisponibles = query(collection(db, "pedidos"), where("estado", "==", "buscando_cadete"), orderBy("fechaPedido", "desc"));
+        // 1. ESCUCHA EN TIEMPO REAL: Pedidos disponibles
+        const qDisponibles = query(collection(db, "pedidos"), where("estado", "==", "buscando_cadete"));
+        
         onSnapshot(qDisponibles, (snapshot) => {
             listaDisponiblesUI.innerHTML = "";
             if (snapshot.empty) {
@@ -82,48 +85,62 @@
                         <p><strong>📦 Paquete:</strong> ${viaje.detalles}</p>
                         <p><strong>🟢 Origen:</strong> ${viaje.origen}</p>
                         <p><strong>🔴 Destino:</strong> ${viaje.destino}</p>
-                        <p class="text-sm font-black text-indigo-600 mt-2">Gana: ${viaje.precioEstimado} [${viaje.metodoPago.toUpperCase()}]</p>
+                        <p class="text-sm font-black text-indigo-600 mt-2">Gana: ${viaje.precioEstimado}</p>
                     </div>
-                    <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 rounded-lg transition btn-tomar" data-id="${viaje.id}">
+                    <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 rounded-lg transition btn-tomar">
                         Aceptar Viaje
                     </button>
                 `;
+                
                 card.querySelector(".btn-tomar").addEventListener("click", async () => {
-                    await updateDoc(doc(db, "pedidos", viaje.id), { estado: "en_camino" });
+                    try {
+                        await updateDoc(doc(db, "pedidos", viaje.id), { estado: "en_camino" });
+                    } catch (e) {
+                        console.error("Error al aceptar:", e);
+                    }
                 });
+                
                 listaDisponiblesUI.appendChild(card);
             });
-        });
+        }, (error) => { console.error("Error en Snapshot Disponibles: ", error); });
 
-        // Escucha 2: Pedidos que pasaron a 'en_camino'
+        // 2. ESCUCHA EN TIEMPO REAL: Tu viaje activo
         const qActivo = query(collection(db, "pedidos"), where("estado", "==", "en_camino"));
+        
         onSnapshot(qActivo, (snapshot) => {
             contenedorActivoUI.innerHTML = "";
             if (snapshot.empty) {
-                contenedorActivoUI.innerHTML = `<p class="text-xs text-indigo-300 italic text-center py-4">No tenés ningún viaje asignado en este momento.</p>`;
+                contenedorActivoUI.innerHTML = `<p class="text-xs italic text-center py-4 text-slate-400">No tenés ningún viaje asignado en este momento.</p>`;
                 return;
             }
             snapshot.forEach((docSnap) => {
                 const viaje = docSnap.data();
                 const cardActiva = document.createElement("div");
-                cardActiva.className = "bg-indigo-900/40 border border-indigo-800 p-4 rounded-xl space-y-3 text-xs";
+                cardActiva.className = "bg-slate-700/50 border border-slate-600 p-4 rounded-xl space-y-3 text-xs";
                 cardActiva.innerHTML = `
-                    <div class="space-y-1 text-indigo-100">
+                    <div class="space-y-1 text-slate-100">
                         <p><strong>📦 Llevar:</strong> ${viaje.detalles}</p>
-                        <p><strong> 🧭 Retiro:</strong> ${viaje.origen}</p>
+                        <p><strong>🧭 Retiro:</strong> ${viaje.origen}</p>
                         <p><strong>📍 Entrega:</strong> ${viaje.destino}</p>
-                        <p class="text-sm font-black text-yellow-400 mt-2">Monto a Cobrar: ${viaje.precioEstimado}</p>
+                        <p class="text-sm font-black text-yellow-400 mt-2">Cobrar: ${viaje.precioEstimado}</p>
                     </div>
                     <button class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg transition text-xs btn-entregar">
                         ✅ Marcar como Entregado
                     </button>
                 `;
+                
                 cardActiva.querySelector(".btn-entregar").addEventListener("click", async () => {
-                    await updateDoc(doc(db, "pedidos", viaje.id), { estado: "entregado" });
+                    try {
+                        await updateDoc(doc(db, "pedidos", viaje.id), { estado: "entregado" });
+                    } catch (e) {
+                        console.error("Error al entregar:", e);
+                    }
                 });
+                
                 contenedorActivoUI.appendChild(cardActiva);
             });
-        });
+        }, (error) => { console.error("Error en Snapshot Activo: ", error); });
+
     </script>
 </body>
 </html>
