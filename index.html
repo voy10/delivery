@@ -5,22 +5,58 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Voy! - Repartidores</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes aparecerVentana {
+            0% { transform: translateY(20px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+        .animar-ventana { animation: aparecerVentana 0.4s ease-out forwards; }
+    </style>
 </head>
-<body class="bg-slate-50 font-sans min-h-screen flex flex-col items-center justify-start p-4 pt-8">
+<body class="bg-slate-50 font-sans min-h-screen flex flex-col items-center justify-center p-4">
 
-    <div class="w-full max-w-sm space-y-6">
+    <!-- PANTALLA 1: LOGIN DEL REPARTIDOR -->
+    <div id="pantalla-login" class="w-full max-w-sm bg-white p-6 rounded-2xl shadow-xl text-center space-y-5 animar-ventana block">
+        <div class="text-center">
+            <span class="text-4xl">🏍️</span>
+            <h1 class="text-2xl font-black text-slate-900 mt-2">Voy! Repartidores</h1>
+            <p class="text-xs text-slate-500 mt-1">Ingresá tus credenciales para trabajar</p>
+        </div>
+        
+        <form id="form-login" class="space-y-4 text-left">
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Número de DNI</label>
+                <input type="number" id="login-dni" required placeholder="Ej: 35123456" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm text-slate-800">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Contraseña</label>
+                <input type="password" id="login-clave" required placeholder="••••••••" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm text-slate-800">
+            </div>
+            <div id="error-login" class="text-xs text-red-600 font-bold hidden text-center bg-red-50 p-2 rounded-lg">
+                ⚠️ DNI o Clave incorrectos.
+            </div>
+            <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 px-4 rounded-xl transition shadow-md text-sm">
+                Ingresar a la Plataforma
+            </button>
+        </form>
+    </div>
+
+    <!-- PANTALLA 2: PANEL DE TRABAJO (OCULTO AL PRINCIPIO) -->
+    <div id="pantalla-panel" class="w-full max-w-sm space-y-6 hidden">
         
         <!-- ENCABEZADO -->
         <div class="w-full flex items-center justify-between border-b border-gray-200 pb-4">
             <div class="flex items-center gap-2">
                 <span class="text-2xl">🏍️</span>
                 <div class="text-left">
-                    <h1 class="text-slate-900 font-black text-xl tracking-tight">Voy! Repartidores</h1>
+                    <!-- El nombre cambiará dinámicamente según quién inicie sesión -->
+                    <h1 id="nombre-chofer" class="text-slate-900 font-black text-xl tracking-tight">Cargando...</h1>
                     <p class="text-emerald-600 text-xs font-bold flex items-center gap-1">
                         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> En Línea
                     </p>
                 </div>
             </div>
+            <button id="btn-cerrar-sesion" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold px-3 py-1.5 rounded-lg transition">Salir</button>
         </div>
         
         <!-- PANELES DE ÓRDENES VIAJES -->
@@ -57,115 +93,163 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        const listaDisponiblesUI = document.getElementById("lista-disponibles");
-        const contenedorActivoUI = document.getElementById("viaje-activo-contenedor");
+        // BASE DE DATOS LOCAL DE REPARTIDORES AUTORIZADOS
+        // Podés cambiar estos números y nombres por los reales de tus amigos para las pruebas
+        const baseRepartidores = [
+            { dni: "11111111", clave: "1234", nombre: "Carlos Gómez" },
+            { dni: "22222222", clave: "abcd", nombre: "Juan Pérez" },
+            { dni: "33333333", clave: "voy55", nombre: "Lucas Rodríguez" }
+        ];
 
+        let choferLogueado = null; // Guardará los datos del repartidor que ingresó
         let geoWatchId = null;
         let simuladorIntervalId = null;
 
-        // 1. Escuchar dinámicamente pedidos en busca de conductor
-        const qDisponibles = query(collection(db, "pedidos"), where("estado", "==", "buscando_cadete"));
-        onSnapshot(qDisponibles, (snapshot) => {
-            listaDisponiblesUI.innerHTML = "";
-            if (snapshot.empty) {
-                listaDisponiblesUI.innerHTML = `<p class="text-xs text-gray-400 italic text-center py-4">No hay pedidos por el momento.</p>`;
-                return;
+        const pLogin = document.getElementById("pantalla-login");
+        const pPanel = document.getElementById("pantalla-panel");
+        const errorLogin = document.getElementById("error-login");
+
+        // MANEJO DEL LOGIN
+        document.getElementById("form-login").addEventListener("submit", (e) => {
+            e.preventDefault();
+            const dniIngresado = document.getElementById("login-dni").value;
+            const claveIngresada = document.getElementById("login-clave").value;
+
+            // Buscar si existe el DNI y coincide la clave
+            const encontrado = baseRepartidores.find(r => r.dni === dniIngresado && r.clave === claveIngresada);
+
+            if (encontrado) {
+                choferLogueado = encontrado;
+                errorLogin.classList.add("hidden");
+                
+                // Cambiar el diseño de la pantalla
+                pLogin.classList.add("hidden");
+                pPanel.classList.remove("hidden");
+                document.body.className = "bg-slate-50 font-sans min-h-screen flex flex-col items-center justify-start p-4 pt-8";
+                
+                document.getElementById("nombre-chofer").innerText = `Hola, ${choferLogueado.nombre}`;
+                
+                // Activar el flujo logístico de Firebase
+                inicializarFlujoLogi();
+            } else {
+                errorLogin.classList.remove("hidden");
             }
-            snapshot.forEach((docSnap) => {
-                const viaje = docSnap.data();
-                const div = document.createElement("div");
-                div.className = "bg-gray-50 border border-gray-200 p-4 rounded-xl space-y-3";
-                div.innerHTML = `
-                    <div class="text-xs text-gray-600 space-y-1">
-                        <p><strong>📦 Llevar:</strong> ${viaje.detalles}</p>
-                        <p><strong>🟢 Desde:</strong> ${viaje.origen}</p>
-                        <p><strong>🔴 Hasta:</strong> ${viaje.destino}</p>
-                        <p class="text-sm font-bold text-indigo-600 mt-1">Pago: ${viaje.precioEstimado}</p>
-                    </div>
-                    <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 rounded-lg transition btn-aceptar">Aceptar Viaje</button>
-                `;
-                
-                // ASIGNACIÓN CON TRANSACCIÓN SEGURA (EVITA COLISIONES)
-                div.querySelector(".btn-aceptar").addEventListener("click", async (e) => {
-                    const boton = e.target;
-                    boton.disabled = true;
-                    boton.innerText = "Verificando...";
-
-                    const pedidoRef = doc(db, "pedidos", viaje.id);
-
-                    try {
-                        // Iniciamos la transacción atómica en Firebase
-                        await runTransaction(db, async (transaction) => {
-                            const sfDoc = await transaction.get(pedidoRef);
-                            if (!sfDoc.exists()) {
-                                throw "El pedido ya no existe.";
-                            }
-
-                            const estadoActual = sfDoc.data().estado;
-                            
-                            // Verificación crucial: ¿Sigue estando libre el viaje?
-                            if (estadoActual === "buscando_cadete") {
-                                // Si está libre, lo tomamos y cambiamos el estado de forma exclusiva
-                                transaction.update(pedidoRef, { estado: "en_camino" });
-                            } else {
-                                // Si otro ya cambió el estado a "en_camino", abortamos la transacción
-                                throw "¡Demasiado tarde! Otro repartidor ya aceptó este viaje.";
-                            }
-                        });
-
-                        // Si la transacción fue exitosa, iniciamos el GPS
-                        comenzarTransmisionGPS(viaje.id);
-
-                    } catch (error) {
-                        // Si falló porque otro ganó el viaje, mostramos la alerta
-                        alert(error);
-                        boton.disabled = false;
-                        boton.innerText = "Aceptar Viaje";
-                    }
-                });
-                
-                listaDisponiblesUI.appendChild(div);
-            });
         });
 
-        // 2. Escuchar la orden activa aceptada
-        const qActivo = query(collection(db, "pedidos"), where("estado", "==", "en_camino"));
-        onSnapshot(qActivo, (snapshot) => {
-            contenedorActivoUI.innerHTML = "";
-            if (snapshot.empty) {
-                detenerTransmisionGPS();
-                contenedorActivoUI.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-2">No tienes viajes asignados actualmente.</p>`;
-                return;
-            }
-            snapshot.forEach((docSnap) => {
-                const viaje = docSnap.data();
-                
-                if (geoWatchId === null) {
-                    comenzarTransmisionGPS(viaje.id);
+        // CERRAR SESIÓN
+        document.getElementById("btn-cerrar-session").addEventListener("click", () => {
+            detenerTransmisionGPS();
+            choferLogueado = null;
+            pPanel.classList.add("hidden");
+            pLogin.classList.remove("hidden");
+            document.body.className = "bg-slate-50 font-sans min-h-screen flex flex-col items-center justify-center p-4";
+            document.getElementById("form-login").reset();
+        });
+
+
+        // FLOW LOGÍSTICO CENTRAL
+        function inicializarFlujoLogi() {
+            const listaDisponiblesUI = document.getElementById("lista-disponibles");
+            const contenedorActivoUI = document.getElementById("viaje-activo-contenedor");
+
+            // 1. Escuchar dinámicamente pedidos en busca de conductor
+            const qDisponibles = query(collection(db, "pedidos"), where("estado", "==", "buscando_cadete"));
+            onSnapshot(qDisponibles, (snapshot) => {
+                listaDisponiblesUI.innerHTML = "";
+                if (snapshot.empty) {
+                    listaDisponiblesUI.innerHTML = `<p class="text-xs text-gray-400 italic text-center py-4">No hay pedidos por el momento.</p>`;
+                    return;
                 }
+                snapshot.forEach((docSnap) => {
+                    const viaje = docSnap.data();
+                    const div = document.createElement("div");
+                    div.className = "bg-gray-50 border border-gray-200 p-4 rounded-xl space-y-3";
+                    div.innerHTML = `
+                        <div class="text-xs text-gray-600 space-y-1">
+                            <p><strong>📦 Llevar:</strong> ${viaje.detalles}</p>
+                            <p><strong>🟢 Desde:</strong> ${viaje.origen}</p>
+                            <p><strong>🔴 Hasta:</strong> ${viaje.destino}</p>
+                            <p class="text-sm font-bold text-indigo-600 mt-1">Pago: ${viaje.precioEstimado}</p>
+                        </div>
+                        <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 rounded-lg transition btn-aceptar">Aceptar Viaje</button>
+                    `;
+                    
+                    div.querySelector(".btn-aceptar").addEventListener("click", async (e) => {
+                        const boton = e.target;
+                        boton.disabled = true;
+                        boton.innerText = "Verificando...";
 
-                const divActivo = document.createElement("div");
-                divActivo.className = "bg-slate-800 p-4 rounded-xl space-y-3 text-xs";
-                divActivo.innerHTML = `
-                    <div class="space-y-1 text-slate-200">
-                        <p><strong>📦 Producto:</strong> ${viaje.detalles}</p>
-                        <p><strong>🟢 Origen:</strong> ${viaje.origen}</p>
-                        <p><strong>🔴 Destino:</strong> ${viaje.destino}</p>
-                        <p class="text-sm font-bold text-yellow-400 mt-1">Cobrar: ${viaje.precioEstimado}</p>
-                    </div>
-                    <button class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg transition btn-terminar">Terminar y Entregar Paquete</button>
-                `;
-                divActivo.querySelector(".btn-terminar").addEventListener("click", async () => {
-                    detenerTransmisionGPS();
-                    await updateDoc(doc(db, "pedidos", viaje.id), { estado: "entregado" });
+                        const pedidoRef = doc(db, "pedidos", viaje.id);
+
+                        try {
+                            await runTransaction(db, async (transaction) => {
+                                const sfDoc = await transaction.get(pedidoRef);
+                                if (!sfDoc.exists()) throw "El pedido ya no existe.";
+
+                                const estadoActual = sfDoc.data().estado;
+                                
+                                if (estadoActual === "buscando_cadete") {
+                                    // Guardamos el viaje Y ADEMÁS guardamos qué chofer se lo quedó
+                                    transaction.update(pedidoRef, { 
+                                        estado: "en_camino",
+                                        repartidorAsignado: choferLogueado.nombre,
+                                        repartidorDni: choferLogueado.dni
+                                    });
+                                } else {
+                                    throw "¡Demasiado tarde! Otro repartidor ya aceptó este viaje.";
+                                }
+                            });
+
+                            comenzarTransmisionGPS(viaje.id);
+
+                        } catch (error) {
+                            alert(error);
+                            boton.disabled = false;
+                            boton.innerText = "Aceptar Viaje";
+                        }
+                    });
+                    
+                    listaDisponiblesUI.appendChild(div);
                 });
-                contenedorActivoUI.appendChild(divActivo);
             });
-        });
 
-        // ====================================
-        // SISTEMA DE MONITOREO GPS REAL HIGHT ACCURACY
-        // ====================================
+            // 2. Escuchar la orden activa (Filtrada para que SOLO le aparezca al chofer que la aceptó)
+            const qActivo = query(collection(db, "pedidos"), where("estado", "==", "en_camino"), where("repartidorDni", "==", choferLogueado.dni));
+            onSnapshot(qActivo, (snapshot) => {
+                contenedorActivoUI.innerHTML = "";
+                if (snapshot.empty) {
+                    detenerTransmisionGPS();
+                    contenedorActivoUI.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-2">No tienes viajes asignados actualmente.</p>`;
+                    return;
+                }
+                snapshot.forEach((docSnap) => {
+                    const viaje = docSnap.data();
+                    
+                    if (geoWatchId === null) {
+                        comenzarTransmisionGPS(viaje.id);
+                    }
+
+                    const divActivo = document.createElement("div");
+                    divActivo.className = "bg-slate-800 p-4 rounded-xl space-y-3 text-xs";
+                    divActivo.innerHTML = `
+                        <div class="space-y-1 text-slate-200">
+                            <p><strong>📦 Producto:</strong> ${viaje.detalles}</p>
+                            <p><strong>🟢 Origen:</strong> ${viaje.origen}</p>
+                            <p><strong>🔴 Destino:</strong> ${viaje.destino}</p>
+                            <p class="text-sm font-bold text-yellow-400 mt-1">Cobrar: ${viaje.precioEstimado}</p>
+                        </div>
+                        <button class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg transition btn-terminar">Terminar y Entregar Paquete</button>
+                    `;
+                    divActivo.querySelector(".btn-terminar").addEventListener("click", async () => {
+                        detenerTransmisionGPS();
+                        await updateDoc(doc(db, "pedidos", viaje.id), { estado: "entregado" });
+                    });
+                    contenedorActivoUI.appendChild(divActivo);
+                });
+            });
+        }
+
+        // CONTROL GPS
         function comenzarTransmisionGPS(idPedido) {
             const pedidoRef = doc(db, "pedidos", idPedido);
 
@@ -175,12 +259,8 @@
                         const { latitude, longitude } = position.coords;
                         actualizarUbicacionFirebase(pedidoRef, latitude, longitude);
                     },
-                    (error) => console.log("Buscando señal satelital óptima..."),
-                    { 
-                        enableHighAccuracy: true,
-                        maximumAge: 0, 
-                        timeout: 5000 
-                    }
+                    (error) => console.log("Buscando señal satelital..."),
+                    { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
                 );
             }
 
@@ -195,7 +275,7 @@
 
                 btnSimular.addEventListener("click", () => {
                     btnSimular.disabled = true;
-                    btnSimular.innerText = "🏍️ Simulando ruta...";
+                    btnSimular.innerText = "🏍️ Simulando...";
                     simuladorIntervalId = setInterval(() => {
                         latSimulada += 0.00015; 
                         lngSimulada += 0.00012; 
@@ -211,21 +291,14 @@
                 await updateDoc(pedidoRef, {
                     ubicacionRepartidor: { lat: lat, lng: lng }
                 });
-                console.log("Ubicación subida a Firebase:", lat, lng);
             } catch (err) {
-                console.error("Error transmitiendo coordenadas: ", err);
+                console.error(err);
             }
         }
 
         function detenerTransmisionGPS() {
-            if (geoWatchId !== null) {
-                navigator.geolocation.clearWatch(geoWatchId);
-                geoWatchId = null;
-            }
-            if (simuladorIntervalId !== null) {
-                clearInterval(simuladorIntervalId);
-                simuladorIntervalId = null;
-            }
+            if (geoWatchId !== null) { navigator.geolocation.clearWatch(geoWatchId); geoWatchId = null; }
+            if (simuladorIntervalId !== null) { clearInterval(simuladorIntervalId); simuladorIntervalId = null; }
             const btn = document.getElementById("btn-simulador");
             if (btn) btn.remove();
         }
