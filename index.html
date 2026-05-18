@@ -40,10 +40,10 @@
 
     </div>
 
-    <!-- SCRIPT EN TIEMPO REAL CON CONTROL DE GPS MÓVIL -->
+    <!-- SCRIPT EN TIEMPO REAL CON CONTROL DE GPS MÓVIL Y TRANSACCIONES -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, query, where, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, query, where, onSnapshot, doc, updateDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBjHsaiCJRWkbdswZzNk6IcqxlkXx20n9o",
@@ -84,10 +84,46 @@
                     </div>
                     <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 rounded-lg transition btn-aceptar">Aceptar Viaje</button>
                 `;
-                div.querySelector(".btn-aceptar").addEventListener("click", async () => {
-                    await updateDoc(doc(db, "pedidos", viaje.id), { estado: "en_camino" });
-                    comenzarTransmisionGPS(viaje.id);
+                
+                // ASIGNACIÓN CON TRANSACCIÓN SEGURA (EVITA COLISIONES)
+                div.querySelector(".btn-aceptar").addEventListener("click", async (e) => {
+                    const boton = e.target;
+                    boton.disabled = true;
+                    boton.innerText = "Verificando...";
+
+                    const pedidoRef = doc(db, "pedidos", viaje.id);
+
+                    try {
+                        // Iniciamos la transacción atómica en Firebase
+                        await runTransaction(db, async (transaction) => {
+                            const sfDoc = await transaction.get(pedidoRef);
+                            if (!sfDoc.exists()) {
+                                throw "El pedido ya no existe.";
+                            }
+
+                            const estadoActual = sfDoc.data().estado;
+                            
+                            // Verificación crucial: ¿Sigue estando libre el viaje?
+                            if (estadoActual === "buscando_cadete") {
+                                // Si está libre, lo tomamos y cambiamos el estado de forma exclusiva
+                                transaction.update(pedidoRef, { estado: "en_camino" });
+                            } else {
+                                // Si otro ya cambió el estado a "en_camino", abortamos la transacción
+                                throw "¡Demasiado tarde! Otro repartidor ya aceptó este viaje.";
+                            }
+                        });
+
+                        // Si la transacción fue exitosa, iniciamos el GPS
+                        comenzarTransmisionGPS(viaje.id);
+
+                    } catch (error) {
+                        // Si falló porque otro ganó el viaje, mostramos la alerta
+                        alert(error);
+                        boton.disabled = false;
+                        boton.innerText = "Aceptar Viaje";
+                    }
                 });
+                
                 listaDisponiblesUI.appendChild(div);
             });
         });
@@ -104,7 +140,6 @@
             snapshot.forEach((docSnap) => {
                 const viaje = docSnap.data();
                 
-                // Si se refresca la página, reanuda la transmisión inmediatamente
                 if (geoWatchId === null) {
                     comenzarTransmisionGPS(viaje.id);
                 }
@@ -135,7 +170,6 @@
             const pedidoRef = doc(db, "pedidos", idPedido);
 
             if ("geolocation" in navigator) {
-                // Rastreo continuo por hardware móvil
                 geoWatchId = navigator.geolocation.watchPosition(
                     (position) => {
                         const { latitude, longitude } = position.coords;
@@ -143,14 +177,13 @@
                     },
                     (error) => console.log("Buscando señal satelital óptima..."),
                     { 
-                        enableHighAccuracy: true, // Forzar uso de GPS real, no antenas telefónicas de baja resolución
+                        enableHighAccuracy: true,
                         maximumAge: 0, 
                         timeout: 5000 
                     }
                 );
             }
 
-            // Botón flotante auxiliar Inteligente en caso de pruebas estáticas en computadora
             if (!document.getElementById("btn-simulador")) {
                 const btnSimular = document.createElement("button");
                 btnSimular.id = "btn-simulador";
