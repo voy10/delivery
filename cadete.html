@@ -4,50 +4,45 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Voy! - Panel de Cadetes</title>
-    <!-- Traemos Tailwind para asegurar el diseño -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-900 font-sans min-h-screen flex flex-col items-center justify-start p-4 pt-8">
 
-    <!-- CABECERA CONTROL PANEL -->
+    <!-- ENCABEZADO -->
     <div class="w-full max-w-sm mb-6 flex items-center justify-between border-b border-slate-800 pb-4">
         <div class="flex items-center gap-2">
             <span class="text-2xl">🏍️</span>
             <div>
-                <h1 class="text-white font-black tracking-tight text-xl">Voy! Drivers</h1>
+                <h1 class="text-white font-black text-xl tracking-tight">Voy! Repartidores</h1>
                 <p class="text-emerald-400 text-xs font-bold flex items-center gap-1">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> En línea trabajando
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> Sistema Conectado
                 </p>
             </div>
         </div>
     </div>
 
-    <!-- CONTENEDOR PRINCIPAL CADETE -->
+    <!-- CONTENEDOR PRINCIPAL -->
     <div class="w-full max-w-sm space-y-6">
         
-        <!-- SECCIÓN A: TU VIAJE ACTIVO ACTUAL -->
-        <div class="bg-slate-800 p-5 rounded-2xl shadow-xl border border-slate-700 text-left text-white space-y-4">
-            <h2 class="text-xs font-black tracking-widest text-indigo-400 uppercase flex items-center gap-2">
-                📌 Mi Viaje Activo
-            </h2>
-            <div id="viaje-activo-contenedor" class="text-slate-300">
-                <p class="text-xs italic text-center py-4 text-slate-400">No tenés ningún viaje asignado en este momento.</p>
+        <!-- VIAJE ACTIVO -->
+        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 text-left text-white">
+            <h2 class="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-3">📌 Mi Orden Asignada</h2>
+            <div id="viaje-activo-contenedor">
+                <p class="text-xs text-slate-400 italic text-center py-2">No tienes viajes asignados actualmente.</p>
             </div>
         </div>
 
-        <!-- SECCIÓN B: CARTERA DE PEDIDOS DISPONIBLES -->
-        <div class="bg-white p-5 rounded-2xl shadow-xl text-left space-y-4">
-            <h2 class="text-sm font-black tracking-widest text-gray-500 uppercase flex items-center gap-2">
-                📥 Pedidos en la Zona
-            </h2>
-            <div id="lista-disponibles" class="space-y-3 max-h-96 overflow-y-auto pr-1">
-                <p class="text-xs text-gray-400 italic text-center py-6">Buscando solicitudes en tiempo real...</p>
+        <!-- VIAJES DISPONIBLES EN LA CIUDAD -->
+        <div class="bg-white p-5 rounded-2xl shadow-xl text-left">
+            <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">📥 Viajes Disponibles</h2>
+            <div id="lista-disponibles" class="space-y-3">
+                <p class="text-xs text-gray-400 italic text-center py-4">Buscando nuevos pedidos entrantes...</p>
             </div>
         </div>
 
     </div>
 
-    <!-- CONTROLADOR FIREBASE MÓDULO -->
+    <!-- CONFIGURACIÓN DE FIREBASE -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, updateDoc, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -67,80 +62,65 @@
         const listaDisponiblesUI = document.getElementById("lista-disponibles");
         const contenedorActivoUI = document.getElementById("viaje-activo-contenedor");
 
-        // 1. ESCUCHA EN TIEMPO REAL: Pedidos disponibles
+        // 1. ESCUCHAR SOLICITUDES EN ESPERA
         const qDisponibles = query(collection(db, "pedidos"), where("estado", "==", "buscando_cadete"));
-        
         onSnapshot(qDisponibles, (snapshot) => {
             listaDisponiblesUI.innerHTML = "";
             if (snapshot.empty) {
-                listaDisponiblesUI.innerHTML = `<p class="text-xs text-gray-400 italic text-center py-6">No hay solicitudes pendientes en este momento.</p>`;
+                listaDisponiblesUI.innerHTML = `<p class="text-xs text-gray-400 italic text-center py-4">No hay pedidos por el momento.</p>`;
                 return;
             }
             snapshot.forEach((docSnap) => {
                 const viaje = docSnap.data();
-                const card = document.createElement("div");
-                card.className = "bg-gray-50 border border-gray-200 p-4 rounded-xl space-y-3";
-                card.innerHTML = `
-                    <div class="text-xs space-y-1 text-gray-600">
-                        <p><strong>📦 Paquete:</strong> ${viaje.detalles}</p>
-                        <p><strong>🟢 Origen:</strong> ${viaje.origen}</p>
-                        <p><strong>🔴 Destino:</strong> ${viaje.destino}</p>
-                        <p class="text-sm font-black text-indigo-600 mt-2">Gana: ${viaje.precioEstimado}</p>
+                const div = document.createElement("div");
+                div.className = "bg-gray-50 border border-gray-200 p-4 rounded-xl space-y-3";
+                div.innerHTML = `
+                    <div class="text-xs text-gray-600 space-y-1">
+                        <p><strong>📦 Llevar:</strong> ${viaje.detalles}</p>
+                        <p><strong>🟢 Desde:</strong> ${viaje.origen}</p>
+                        <p><strong>🔴 Hasta:</strong> ${viaje.destino}</p>
+                        <p class="text-sm font-bold text-indigo-600 mt-1">Pago: ${viaje.precioEstimado}</p>
                     </div>
-                    <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 rounded-lg transition btn-tomar">
+                    <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 rounded-lg transition btn-aceptar">
                         Aceptar Viaje
                     </button>
                 `;
-                
-                card.querySelector(".btn-tomar").addEventListener("click", async () => {
-                    try {
-                        await updateDoc(doc(db, "pedidos", viaje.id), { estado: "en_camino" });
-                    } catch (e) {
-                        console.error("Error al aceptar:", e);
-                    }
+                div.querySelector(".btn-aceptar").addEventListener("click", async () => {
+                    await updateDoc(doc(db, "pedidos", viaje.id), { estado: "en_camino" });
                 });
-                
-                listaDisponiblesUI.appendChild(card);
+                listaDisponiblesUI.appendChild(div);
             });
-        }, (error) => { console.error("Error en Snapshot Disponibles: ", error); });
+        });
 
-        // 2. ESCUCHA EN TIEMPO REAL: Tu viaje activo
+        // 2. ESCUCHAR NUESTRO VIAJE EN PROCESO
         const qActivo = query(collection(db, "pedidos"), where("estado", "==", "en_camino"));
-        
         onSnapshot(qActivo, (snapshot) => {
             contenedorActivoUI.innerHTML = "";
             if (snapshot.empty) {
-                contenedorActivoUI.innerHTML = `<p class="text-xs italic text-center py-4 text-slate-400">No tenés ningún viaje asignado en este momento.</p>`;
+                contenedorActivoUI.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-2">No tienes viajes asignados actualmente.</p>`;
                 return;
             }
             snapshot.forEach((docSnap) => {
                 const viaje = docSnap.data();
-                const cardActiva = document.createElement("div");
-                cardActiva.className = "bg-slate-700/50 border border-slate-600 p-4 rounded-xl space-y-3 text-xs";
-                cardActiva.innerHTML = `
-                    <div class="space-y-1 text-slate-100">
-                        <p><strong>📦 Llevar:</strong> ${viaje.detalles}</p>
-                        <p><strong>🧭 Retiro:</strong> ${viaje.origen}</p>
-                        <p><strong>📍 Entrega:</strong> ${viaje.destino}</p>
-                        <p class="text-sm font-black text-yellow-400 mt-2">Cobrar: ${viaje.precioEstimado}</p>
+                const divActivo = document.createElement("div");
+                divActivo.className = "bg-slate-700 p-4 rounded-xl space-y-3 text-xs";
+                divActivo.innerHTML = `
+                    <div class="space-y-1 text-slate-200">
+                        <p><strong>📦 Producto:</strong> ${viaje.detalles}</p>
+                        <p><strong>🟢 Origen:</strong> ${viaje.origen}</p>
+                        <p><strong>🔴 Destino:</strong> ${viaje.destino}</p>
+                        <p class="text-sm font-bold text-yellow-400 mt-1">Cobrar: ${viaje.precioEstimado}</p>
                     </div>
-                    <button class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg transition text-xs btn-entregar">
-                        ✅ Marcar como Entregado
+                    <button class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg transition btn-terminar">
+                        Terminar y Entregar Paquete
                     </button>
                 `;
-                
-                cardActiva.querySelector(".btn-entregar").addEventListener("click", async () => {
-                    try {
-                        await updateDoc(doc(db, "pedidos", viaje.id), { estado: "entregado" });
-                    } catch (e) {
-                        console.error("Error al entregar:", e);
-                    }
+                divActivo.querySelector(".btn-terminar").addEventListener("click", async () => {
+                    await updateDoc(doc(db, "pedidos", viaje.id), { estado: "entregado" });
                 });
-                
-                contenedorActivoUI.appendChild(cardActiva);
+                contenedorActivoUI.appendChild(divActivo);
             });
-        }, (error) => { console.error("Error en Snapshot Activo: ", error); });
-
+        });
     </script>
 </body>
 </html>
