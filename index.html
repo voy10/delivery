@@ -3,36 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voy! - Panel de Cadetes</title>
+    <title>Voy! - Repartidores</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-900 font-sans min-h-screen flex flex-col items-center justify-start p-4 pt-8">
+<body class="bg-slate-50 font-sans min-h-screen flex flex-col items-center justify-start p-4 pt-8">
 
-    <!-- ENCABEZADO -->
-    <div class="w-full max-w-sm mb-6 flex items-center justify-between border-b border-slate-800 pb-4">
-        <div class="flex items-center gap-2">
-            <span class="text-2xl">🏍️</span>
-            <div>
-                <h1 class="text-white font-black text-xl tracking-tight">Voy! Repartidores</h1>
-                <p class="text-emerald-400 text-xs font-bold flex items-center gap-1">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> Sistema Conectado
-                </p>
-            </div>
-        </div>
-    </div>
-
-    <!-- CONTENEDOR PRINCIPAL -->
     <div class="w-full max-w-sm space-y-6">
         
-        <!-- VIAJE ACTIVO -->
-        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 text-left text-white">
+        <!-- ENCABEZADO -->
+        <div class="w-full flex items-center justify-between border-b border-gray-200 pb-4">
+            <div class="flex items-center gap-2">
+                <span class="text-2xl">🏍️</span>
+                <div class="text-left">
+                    <h1 class="text-slate-900 font-black text-xl tracking-tight">Voy! Repartidores</h1>
+                    <p class="text-emerald-600 text-xs font-bold flex items-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> En Línea
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- PANELES DE ÓRDENES VIAJES -->
+        <div class="bg-slate-900 p-5 rounded-2xl text-left text-white shadow-xl">
             <h2 class="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-3">📌 Mi Orden Asignada</h2>
             <div id="viaje-activo-contenedor">
                 <p class="text-xs text-slate-400 italic text-center py-2">No tienes viajes asignados actualmente.</p>
             </div>
         </div>
 
-        <!-- VIAJES DISPONIBLES EN LA CIUDAD -->
         <div class="bg-white p-5 rounded-2xl shadow-xl text-left">
             <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">📥 Viajes Disponibles</h2>
             <div id="lista-disponibles" class="space-y-3">
@@ -42,10 +40,10 @@
 
     </div>
 
-    <!-- CONFIGURACIÓN DE FIREBASE -->
+    <!-- SCRIPT EN TIEMPO REAL CON CONTROL DE GPS MÓVIL -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, updateDoc, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, query, where, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBjHsaiCJRWkbdswZzNk6IcqxlkXx20n9o",
@@ -62,45 +60,10 @@
         const listaDisponiblesUI = document.getElementById("lista-disponibles");
         const contenedorActivoUI = document.getElementById("viaje-activo-contenedor");
 
-        // ID del watcher de Geolocalización global
         let geoWatchId = null;
+        let simuladorIntervalId = null;
 
-        // Función interna para empezar a transmitir coordenadas
-        function comenzarTransmisionGPS(idPedido) {
-            if (!"geolocation" in navigator) {
-                console.error("El dispositivo no soporta GPS.");
-                return;
-            }
-
-            const pedidoRef = doc(db, "pedidos", idPedido);
-
-            geoWatchId = navigator.geolocation.watchPosition(
-                (position) => {
-                    const { latitude, longitude } = position.coords;
-                    
-                    // Actualizamos la base de datos de manera limpia en el sub-objeto
-                    updateDoc(pedidoRef, {
-                        ubicacionRepartidor: {
-                            lat: latitude,
-                            lng: longitude
-                        }
-                    }).catch(err => console.error("Error transmitiendo GPS: ", err));
-                },
-                (error) => console.error("Error capturando GPS: ", error.message),
-                { enableHighAccuracy: true, maximumAge: 0 }
-            );
-        }
-
-        // Función interna para frenar el rastreo GPS
-        function detenerTransmisionGPS() {
-            if (geoWatchId !== null) {
-                navigator.geolocation.clearWatch(geoWatchId);
-                geoWatchId = null;
-                console.log("Transmisión de ubicación apagada.");
-            }
-        }
-
-        // 1. ESCUCHAR SOLICITUDES EN ESPERA
+        // 1. Escuchar dinámicamente pedidos en busca de conductor
         const qDisponibles = query(collection(db, "pedidos"), where("estado", "==", "buscando_cadete"));
         onSnapshot(qDisponibles, (snapshot) => {
             listaDisponiblesUI.innerHTML = "";
@@ -119,26 +82,21 @@
                         <p><strong>🔴 Hasta:</strong> ${viaje.destino}</p>
                         <p class="text-sm font-bold text-indigo-600 mt-1">Pago: ${viaje.precioEstimado}</p>
                     </div>
-                    <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 rounded-lg transition btn-aceptar">
-                        Aceptar Viaje
-                    </button>
+                    <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 rounded-lg transition btn-aceptar">Aceptar Viaje</button>
                 `;
                 div.querySelector(".btn-aceptar").addEventListener("click", async () => {
-                    // Cambia estado
                     await updateDoc(doc(db, "pedidos", viaje.id), { estado: "en_camino" });
-                    // ENCIENDE GPS
                     comenzarTransmisionGPS(viaje.id);
                 });
                 listaDisponiblesUI.appendChild(div);
             });
         });
 
-        // 2. ESCUCHAR NUESTRO VIAJE EN PROCESO
+        // 2. Escuchar la orden activa aceptada
         const qActivo = query(collection(db, "pedidos"), where("estado", "==", "en_camino"));
         onSnapshot(qActivo, (snapshot) => {
             contenedorActivoUI.innerHTML = "";
             if (snapshot.empty) {
-                // Si el documento cambia y ya no está activo (se canceló o entregó), apagamos el GPS por las dudas
                 detenerTransmisionGPS();
                 contenedorActivoUI.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-2">No tienes viajes asignados actualmente.</p>`;
                 return;
@@ -146,13 +104,13 @@
             snapshot.forEach((docSnap) => {
                 const viaje = docSnap.data();
                 
-                // Si entramos a la app de golpe y ya hay un viaje activo, reactivamos el watcher GPS si estaba apagado
+                // Si se refresca la página, reanuda la transmisión inmediatamente
                 if (geoWatchId === null) {
                     comenzarTransmisionGPS(viaje.id);
                 }
 
                 const divActivo = document.createElement("div");
-                divActivo.className = "bg-slate-700 p-4 rounded-xl space-y-3 text-xs";
+                divActivo.className = "bg-slate-800 p-4 rounded-xl space-y-3 text-xs";
                 divActivo.innerHTML = `
                     <div class="space-y-1 text-slate-200">
                         <p><strong>📦 Producto:</strong> ${viaje.detalles}</p>
@@ -160,19 +118,84 @@
                         <p><strong>🔴 Destino:</strong> ${viaje.destino}</p>
                         <p class="text-sm font-bold text-yellow-400 mt-1">Cobrar: ${viaje.precioEstimado}</p>
                     </div>
-                    <button class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg transition btn-terminar">
-                        Terminar y Entregar Paquete
-                    </button>
+                    <button class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg transition btn-terminar">Terminar y Entregar Paquete</button>
                 `;
                 divActivo.querySelector(".btn-terminar").addEventListener("click", async () => {
-                    // APAGA GPS
                     detenerTransmisionGPS();
-                    // Finaliza viaje
                     await updateDoc(doc(db, "pedidos", viaje.id), { estado: "entregado" });
                 });
                 contenedorActivoUI.appendChild(divActivo);
             });
         });
+
+        // ====================================
+        // SISTEMA DE MONITOREO GPS REAL HIGHT ACCURACY
+        // ====================================
+        function comenzarTransmisionGPS(idPedido) {
+            const pedidoRef = doc(db, "pedidos", idPedido);
+
+            if ("geolocation" in navigator) {
+                // Rastreo continuo por hardware móvil
+                geoWatchId = navigator.geolocation.watchPosition(
+                    (position) => {
+                        const { latitude, longitude } = position.coords;
+                        actualizarUbicacionFirebase(pedidoRef, latitude, longitude);
+                    },
+                    (error) => console.log("Buscando señal satelital óptima..."),
+                    { 
+                        enableHighAccuracy: true, // Forzar uso de GPS real, no antenas telefónicas de baja resolución
+                        maximumAge: 0, 
+                        timeout: 5000 
+                    }
+                );
+            }
+
+            // Botón flotante auxiliar Inteligente en caso de pruebas estáticas en computadora
+            if (!document.getElementById("btn-simulador")) {
+                const btnSimular = document.createElement("button");
+                btnSimular.id = "btn-simulador";
+                btnSimular.className = "fixed bottom-4 right-4 bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-black text-xs p-3 rounded-xl shadow-2xl z-50 animate-pulse";
+                btnSimular.innerText = "🚀 Simular Movimiento (PC)";
+                
+                let latSimulada = -31.4167;
+                let lngSimulada = -64.1833;
+
+                btnSimular.addEventListener("click", () => {
+                    btnSimular.disabled = true;
+                    btnSimular.innerText = "🏍️ Simulando ruta...";
+                    simuladorIntervalId = setInterval(() => {
+                        latSimulada += 0.00015; 
+                        lngSimulada += 0.00012; 
+                        actualizarUbicacionFirebase(pedidoRef, latSimulada, lngSimulada);
+                    }, 2000);
+                });
+                document.body.appendChild(btnSimular);
+            }
+        }
+
+        async function actualizarUbicacionFirebase(pedidoRef, lat, lng) {
+            try {
+                await updateDoc(pedidoRef, {
+                    ubicacionRepartidor: { lat: lat, lng: lng }
+                });
+                console.log("Ubicación subida a Firebase:", lat, lng);
+            } catch (err) {
+                console.error("Error transmitiendo coordenadas: ", err);
+            }
+        }
+
+        function detenerTransmisionGPS() {
+            if (geoWatchId !== null) {
+                navigator.geolocation.clearWatch(geoWatchId);
+                geoWatchId = null;
+            }
+            if (simuladorIntervalId !== null) {
+                clearInterval(simuladorIntervalId);
+                simuladorIntervalId = null;
+            }
+            const btn = document.getElementById("btn-simulador");
+            if (btn) btn.remove();
+        }
     </script>
 </body>
 </html>
