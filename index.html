@@ -62,6 +62,44 @@
         const listaDisponiblesUI = document.getElementById("lista-disponibles");
         const contenedorActivoUI = document.getElementById("viaje-activo-contenedor");
 
+        // ID del watcher de Geolocalización global
+        let geoWatchId = null;
+
+        // Función interna para empezar a transmitir coordenadas
+        function comenzarTransmisionGPS(idPedido) {
+            if (!"geolocation" in navigator) {
+                console.error("El dispositivo no soporta GPS.");
+                return;
+            }
+
+            const pedidoRef = doc(db, "pedidos", idPedido);
+
+            geoWatchId = navigator.geolocation.watchPosition(
+                (position) => {
+                    const { latitude, longitude } = position.coords;
+                    
+                    // Actualizamos la base de datos de manera limpia en el sub-objeto
+                    updateDoc(pedidoRef, {
+                        ubicacionRepartidor: {
+                            lat: latitude,
+                            lng: longitude
+                        }
+                    }).catch(err => console.error("Error transmitiendo GPS: ", err));
+                },
+                (error) => console.error("Error capturando GPS: ", error.message),
+                { enableHighAccuracy: true, maximumAge: 0 }
+            );
+        }
+
+        // Función interna para frenar el rastreo GPS
+        function detenerTransmisionGPS() {
+            if (geoWatchId !== null) {
+                navigator.geolocation.clearWatch(geoWatchId);
+                geoWatchId = null;
+                console.log("Transmisión de ubicación apagada.");
+            }
+        }
+
         // 1. ESCUCHAR SOLICITUDES EN ESPERA
         const qDisponibles = query(collection(db, "pedidos"), where("estado", "==", "buscando_cadete"));
         onSnapshot(qDisponibles, (snapshot) => {
@@ -86,7 +124,10 @@
                     </button>
                 `;
                 div.querySelector(".btn-aceptar").addEventListener("click", async () => {
+                    // Cambia estado
                     await updateDoc(doc(db, "pedidos", viaje.id), { estado: "en_camino" });
+                    // ENCIENDE GPS
+                    comenzarTransmisionGPS(viaje.id);
                 });
                 listaDisponiblesUI.appendChild(div);
             });
@@ -97,11 +138,19 @@
         onSnapshot(qActivo, (snapshot) => {
             contenedorActivoUI.innerHTML = "";
             if (snapshot.empty) {
+                // Si el documento cambia y ya no está activo (se canceló o entregó), apagamos el GPS por las dudas
+                detenerTransmisionGPS();
                 contenedorActivoUI.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-2">No tienes viajes asignados actualmente.</p>`;
                 return;
             }
             snapshot.forEach((docSnap) => {
                 const viaje = docSnap.data();
+                
+                // Si entramos a la app de golpe y ya hay un viaje activo, reactivamos el watcher GPS si estaba apagado
+                if (geoWatchId === null) {
+                    comenzarTransmisionGPS(viaje.id);
+                }
+
                 const divActivo = document.createElement("div");
                 divActivo.className = "bg-slate-700 p-4 rounded-xl space-y-3 text-xs";
                 divActivo.innerHTML = `
@@ -116,6 +165,9 @@
                     </button>
                 `;
                 divActivo.querySelector(".btn-terminar").addEventListener("click", async () => {
+                    // APAGA GPS
+                    detenerTransmisionGPS();
+                    // Finaliza viaje
                     await updateDoc(doc(db, "pedidos", viaje.id), { estado: "entregado" });
                 });
                 contenedorActivoUI.appendChild(divActivo);
