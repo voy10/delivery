@@ -83,7 +83,6 @@
         <div class="flex-1 flex flex-col space-y-4">
             <div class="flex items-center justify-between px-1">
                 <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400">Pedidos Disponibles</h3>
-                <!-- SE CAMBIÓ LA ETIQUETA "EN VIVO" POR "EN VIAJE" AQUÍ -->
                 <span class="bg-blue-500/10 text-blue-400 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase border border-blue-500/20 tracking-wider">En Viaje</span>
             </div>
             
@@ -341,6 +340,7 @@
             idIntervaloGps = setInterval(enviarUbicacion, 5000);
         }
 
+        // PROVEEDOR GPS FALLBACK
         function simularGps(idPedido) {
             const pedidoRef = doc(db, "pedidos", idPedido);
             updateDoc(pedidoRef, {
@@ -351,20 +351,43 @@
             }).catch(err => console.error("Error en tracker simulado:", err));
         }
 
-        // CANCELAR VIAJE
+        // CANCELAR VIAJE (ACTUALIZADO CON MOTIVOS PARA LA APP CLIENTE)
         document.getElementById("btn-cancelar-viaje").addEventListener("click", async () => {
             if (!idViajeActivo) return;
 
-            const confirmar = confirm("¿Estás seguro de que deseas cancelar este viaje? El pedido volverá a estar disponible para otros repartidores.");
-            if (!confirmar) return;
+            // Menú nativo para capturar el motivo exacto de la cancelación
+            const mensajeMotivo = "Selecciona el número del motivo de cancelación:\n\n1 - Problema Mecánico\n2 - Siniestro / Accidente\n3 - Otro motivo";
+            const seleccion = prompt(mensajeMotivo);
+
+            // Si el chofer cierra el aviso o cancela, no se ejecuta nada
+            if (seleccion === null) return;
+
+            let motivoTexto = "";
+            switch (seleccion.trim()) {
+                case "1":
+                    motivoTexto = "Problema Mecánico";
+                    break;
+                case "2":
+                    motivoTexto = "Siniestro / Accidente";
+                    break;
+                case "3":
+                    motivoTexto = prompt("Por favor, especifica el motivo:") || "Otro motivo no especificado";
+                    break;
+                default:
+                    alert("❌ Opción inválida. El viaje no se ha cancelado.");
+                    return;
+            }
 
             if (idIntervaloGps) clearInterval(idIntervaloGps);
 
             try {
                 const pedidoRef = doc(db, "pedidos", idViajeActivo);
                 
+                // Actualizamos el documento en Firebase con el estado 'cancelado' y el motivo
                 await updateDoc(pedidoRef, { 
-                    estado: "buscando_cadete",
+                    estado: "cancelado",
+                    motivoCancelacion: motivoTexto,
+                    fechaCancelacion: new Date().toISOString(),
                     repartidorAsignado: deleteField(),
                     repartidorDni: deleteField(),
                     ubicacionRepartidor: deleteField() 
@@ -374,7 +397,7 @@
                 pConsola.classList.remove("hidden");
                 idViajeActivo = null;
                 
-                alert("🟢 Viaje liberado con éxito.");
+                alert("🚨 Viaje cancelado. Se notificó al cliente.");
             } catch (error) {
                 console.error(error);
                 alert("Error al intentar cancelar el viaje en el servidor. Revisa tu conexión.");
