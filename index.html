@@ -3,117 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voy! - Repartidor</title>
+    <title>VOY MÓVIL - Repartidores</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @keyframes aparecerConVelocidad {
-            0% { transform: translateY(50px) skewX(-10deg); opacity: 0; }
-            60% { transform: translateY(-5px) skewX(-10deg); opacity: 1; }
-            100% { transform: translateY(0) skewX(-10deg); }
-        }
-        @keyframes golpeExclamacion {
-            0% { transform: scale(0); opacity: 0; }
-            80% { transform: scale(1.3); }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        @keyframes fadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
-        .animar-texto { animation: aparecerConVelocidad 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        .animar-signo { opacity: 0; animation: golpeExclamacion 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.5s forwards; }
-        .animar-subtitulo { opacity: 0; animation: fadeIn 0.5s ease 0.8s forwards; }
-        .fade-out { opacity: 0; transition: opacity 0.5s ease-out; pointer-events: none; }
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
         
-        @keyframes aparecerVentana {
-            0% { transform: translateY(20px); opacity: 0; }
-            100% { transform: translateY(0); opacity: 1; }
+        /* Animaciones para la Splash Screen */
+        .splash-bg {
+            background: linear-gradient(135deg, #0f172a 0%, #020617 100%);
         }
-        .animar-ventana { animation: aparecerVentana 0.4s ease-out forwards; }
+        .fade-out {
+            opacity: 0;
+            transition: opacity 0.5s ease-out;
+            pointer-events: none;
+        }
+        @keyframes pulse-soft {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+        }
+        .pulse-logo { animation: pulse-soft 2s infinite ease-in-out; }
     </style>
 </head>
-<!-- FONDO DE LA APP: Ahora es Azul Marino Oscuro para mejor contraste -->
-<body class="bg-slate-900 font-sans min-h-screen flex flex-col items-center justify-center p-4">
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-blue-500/30">
 
-    <!-- SPLASH SCREEN DE BIENVENIDA -->
-    <div id="splash" class="fixed inset-0 bg-blue-950 flex flex-col items-center justify-center z-50">
-        <div class="flex items-center text-white text-7xl font-black tracking-tighter select-none">
-            <span class="animar-texto italic">Voy</span>
-            <span class="animar-signo text-yellow-400 italic font-serif ml-1">!</span>
+    <!-- 1. SPLASH SCREEN (PANTALLA DE CARGA) -->
+    <div id="splash" class="fixed inset-0 z-50 flex flex-col items-center justify-center splash-bg">
+        <div class="text-center space-y-4">
+            <div class="pulse-logo inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 shadow-xl shadow-blue-500/20">
+                <span class="text-white text-3xl font-black tracking-tighter">V!</span>
+            </div>
+            <h1 class="text-white text-xl font-black tracking-widest uppercase">VOY MÓVIL</h1>
+            <p class="text-xs text-slate-400 font-medium tracking-wide">Iniciando consola de reparto...</p>
         </div>
-        <p class="text-blue-300 text-sm tracking-widest uppercase mt-4 animar-subtitulo">Panel Conductor</p>
     </div>
 
-    <!-- CONTENEDOR PRINCIPAL -->
-    <div class="w-full max-w-sm space-y-4">
-        
-        <!-- PANTALLA 1: INGRESO CON CONDUCTOR (Contenedor Azul Intermedio, Texto Blanco) -->
-        <div id="pantalla-login" class="bg-slate-800 p-6 rounded-2xl shadow-2xl border border-slate-700 text-center block animar-ventana">
-            <h1 class="text-2xl font-bold text-white mb-1">Panel de Cadetes</h1>
-            <p class="text-xs text-slate-300 mb-6 text-center">Ingresá tus credenciales para empezar a recibir viajes.</p>
-            
-            <form id="form-login" class="space-y-4 text-left">
+    <!-- 2. PANTALLA DE LOGIN -->
+    <div id="pantalla-login" class="flex-1 flex flex-col justify-center px-6 py-12 max-w-md mx-auto w-full">
+        <div class="space-y-2 text-center mb-8">
+            <h2 class="text-2xl font-extrabold tracking-tight text-white">Ingreso Choferes</h2>
+            <p class="text-sm text-slate-400">Introduce tus credenciales para activar tu ruta.</p>
+        </div>
+
+        <div class="bg-slate-900/50 border border-slate-800 p-6 rounded-2xl shadow-xl backdrop-blur-sm">
+            <form id="form-login" class="space-y-5">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">DNI del Conductor</label>
-                    <input type="text" id="login-dni" required placeholder="Ej: 38123456" class="w-full px-4 py-2.5 rounded-xl border border-slate-600 bg-slate-700 focus:ring-2 focus:ring-blue-400 outline-none text-sm text-white placeholder-slate-400">
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Número de DNI</label>
+                    <input type="text" id="login-dni" required placeholder="Ej: 38444555" 
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Clave de Acceso</label>
-                    <input type="password" id="login-clave" required placeholder="••••••••" class="w-full px-4 py-2.5 rounded-xl border border-slate-600 bg-slate-700 focus:ring-2 focus:ring-blue-400 outline-none text-sm text-white placeholder-slate-400">
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Clave de Acceso</label>
+                    <input type="password" id="login-clave" required placeholder="••••••••" 
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition">
                 </div>
-                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl transition shadow-md mt-2 tracking-wide">
+                <button type="submit" 
+                    class="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold py-3.5 rounded-xl transition tracking-wide text-sm shadow-lg shadow-blue-600/10 mt-2">
                     Iniciar Sesión
                 </button>
             </form>
         </div>
+    </div>
 
-        <!-- PANTALLA 2: LISTADO DE VIAJES DISPONIBLES (Contenedor Azul Intermedio, Texto Blanco) -->
-        <div id="pantalla-consola" class="bg-slate-800 p-6 rounded-2xl shadow-2xl border border-slate-700 hidden animar-ventana">
-            <div class="flex items-center justify-between border-b border-slate-700 pb-3 mb-4">
-                <div>
-                    <h2 class="text-lg font-bold text-white" id="txt-nombre-chofer">Cadete</h2>
-                    <p class="text-xs text-emerald-400 font-medium flex items-center gap-1">🟢 En línea disponible</p>
-                </div>
-                <button id="btn-logout" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-xl transition font-medium border border-slate-600">Salir</button>
+    <!-- 3. CONSOLA PRINCIPAL (PEDIDOS DISPONIBLES) -->
+    <div id="pantalla-consola" class="hidden flex-1 flex flex-col w-full max-w-md mx-auto px-4 py-6 space-y-6">
+        <!-- Header Chofer -->
+        <div class="flex items-center justify-between bg-slate-900 border border-slate-800 px-4 py-3 rounded-xl">
+            <div class="flex items-center space-x-3">
+                <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                <span class="text-xs text-slate-300 font-medium">Chofer: <strong id="txt-nombre-chofer" class="text-white font-semibold">Cargando...</strong></span>
             </div>
-
-            <!-- Listado en Tiempo Real -->
-            <div class="space-y-3">
-                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Viajes en el área</h3>
-                <div id="lista-disponibles" class="space-y-3 max-h-60 overflow-y-auto pr-1">
-                    <p class="text-xs text-slate-400 italic text-center py-4">Buscando nuevos pedidos entrantes...</p>
-                </div>
-            </div>
+            <button id="btn-logout" class="text-xs font-bold text-rose-400 hover:text-rose-300 transition px-2 py-1 rounded">
+                Salir
+            </button>
         </div>
 
-        <!-- PANTALLA 3: VIAJE ACTIVO -->
-        <div id="pantalla-viaje-activo" class="bg-slate-800 p-6 rounded-2xl shadow-2xl border border-slate-700 text-left space-y-4 hidden animar-ventana">
-            <div class="flex items-center justify-between border-b border-slate-700 pb-2">
-                <h2 class="text-lg font-bold text-white">Viaje en Curso</h2>
-                <span class="bg-blue-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full tracking-wider uppercase animate-pulse">En viaje</span>
+        <!-- Sección de Pedidos -->
+        <div class="flex-1 flex flex-col space-y-4">
+            <div class="flex items-center justify-between px-1">
+                <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400">Pedidos Disponibles</h3>
+                <!-- SE CAMBIÓ LA ETIQUETA "EN VIVO" POR "EN VIAJE" AQUÍ -->
+                <span class="bg-blue-500/10 text-blue-400 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase border border-blue-500/20 tracking-wider">En Viaje</span>
             </div>
-
-            <!-- Detalles del Viaje con fondo azul profundo para resaltar las letras blancas -->
-            <div class="bg-slate-900 border border-slate-700 p-4 rounded-xl space-y-2 text-xs">
-                <p><span class="text-emerald-400 font-bold">🟢 Retiro:</span> <span id="activo-origen" class="text-slate-100 font-medium">-</span></p>
-                <p><span class="text-rose-400 font-bold">🔴 Entrega:</span> <span id="activo-destino" class="text-slate-100 font-medium">-</span></p>
-                <p><span class="text-blue-400 font-bold">📦 Detalles:</span> <span id="activo-detalles" class="text-slate-100 font-medium">-</span></p>
-                <p class="text-base font-black text-yellow-400 pt-1 border-t border-slate-800 mt-2">Cobrar: <span id="activo-precio">-</span></p>
+            
+            <!-- Lista Dinámica de Viajes -->
+            <div id="lista-disponibles" class="space-y-3 flex-1 overflow-y-auto max-h-[calc(100vh-180px)] pr-1">
+                <p class="text-xs text-slate-400 italic text-center py-4">Conectando con el servidor de pedidos...</p>
             </div>
-
-            <div class="bg-slate-750 border border-slate-700 p-3 rounded-xl flex items-center gap-2">
-                <span class="text-xl animate-spin">🛰️</span>
-                <p class="text-[11px] text-slate-300 leading-tight">Transmitiendo coordenadas GPS al cliente en tiempo real cada 5 segundos.</p>
-            </div>
-
-            <button id="btn-completar-viaje" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl transition shadow-md tracking-wide">
-                🏁 Completar y Finalizar Entrega
-            </button>
         </div>
     </div>
 
-    <!-- SCRIPT DE CONEXIÓN CON FIREBASE -->
+    <!-- 4. PANTALLA DE VIAJE ACTIVO -->
+    <div id="pantalla-viaje-activo" class="hidden fixed inset-0 bg-slate-950 z-40 flex flex-col p-5 space-y-5">
+        <div class="bg-blue-600/10 border border-blue-500/20 p-4 rounded-2xl flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-3 h-3 rounded-full bg-blue-500 animate-ping"></div>
+                <span class="text-xs font-bold text-blue-400 uppercase tracking-wider">Tienes un viaje en curso</span>
+            </div>
+            <!-- BOTÓN DE CANCELAR VIAJE -->
+            <button id="btn-cancelar-viaje" class="text-xs font-bold text-rose-400 hover:text-rose-300 transition bg-rose-500/10 border border-rose-500/20 px-3 py-1.5 rounded-xl">
+                Cancelar Viaje
+            </button>
+        </div>
+
+        <!-- Tarjeta de Datos del Pedido -->
+        <div class="flex-1 bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-6 overflow-y-auto shadow-xl">
+            <div class="space-y-4">
+                <div>
+                    <span class="text-[10px] font-bold text-blue-400 uppercase tracking-widest block mb-1">Punto de Retiro</span>
+                    <p id="activo-origen" class="text-sm font-bold text-white"></p>
+                </div>
+                
+                <div class="border-l-2 border-dashed border-slate-700 h-6 ml-1.5"></div>
+
+                <div>
+                    <span class="text-[10px] font-bold text-rose-400 uppercase tracking-widest block mb-1">Destino de Entrega</span>
+                    <p id="activo-destino" class="text-sm font-bold text-white"></p>
+                </div>
+
+                <hr class="border-slate-800 my-4">
+
+                <div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Detalle del Paquete</span>
+                    <p id="activo-detalles" class="text-sm text-slate-300"></p>
+                </div>
+            </div>
+
+            <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl text-center">
+                <span class="text-[10px] font-bold text-yellow-500 uppercase tracking-widest block mb-1">Ganancia Estimada</span>
+                <p id="activo-precio" class="text-2xl font-black text-yellow-400"></p>
+            </div>
+
+            <div class="bg-slate-950/40 p-3 rounded-xl border border-slate-800/60 flex items-center space-x-3">
+                <svg class="w-4 h-4 text-emerald-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                <p class="text-[11px] text-slate-400">Tu posición GPS se está enviando en tiempo real al cliente.</p>
+            </div>
+        </div>
+
+        <!-- Acción de Finalización -->
+        <button id="btn-completar-viaje" 
+            class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl transition tracking-wide text-sm shadow-lg shadow-emerald-600/10">
+            Marcar como Entregado
+        </button>
+    </div>
+
+    <!-- 5. LÓGICA DE FIREBASE Y CONTROL DE LA APP -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, getDoc, collection, query, where, onSnapshot, runTransaction, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, collection, query, where, onSnapshot, runTransaction, updateDoc, deleteField } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+        // Configuración de tu Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyBjHsaiCJRWkbdswZzNk6IcqxlkXx20n9o",
             authDomain: "voy-259ba.firebaseapp.com",
@@ -126,29 +166,36 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Remover Splash Screen
+        // Control de remoción de Splash Screen
         const splash = document.getElementById("splash");
         setTimeout(() => { 
             splash.classList.add("fade-out"); 
             setTimeout(() => splash.remove(), 500); 
         }, 1800);
 
-        // Elementos de la interfaz
+        // Nodos del DOM
         const pLogin = document.getElementById("pantalla-login");
         const pConsola = document.getElementById("pantalla-consola");
         const pViajeActivo = document.getElementById("pantalla-viaje-activo");
         const listaDisponiblesUI = document.getElementById("lista-disponibles");
+        const formLogin = document.getElementById("form-login");
 
+        // Variables de estado global
         let choferLogueado = null;
         let idViajeActivo = null;
         let idIntervaloGps = null;
         let desapuntarDisponibles = null;
 
-        // 1. LOGIN DE CHOFERES CONTRA FIRESTORE
-        document.getElementById("form-login").addEventListener("submit", async (e) => {
+        // INGRESO DEL REPARTIDOR
+        formLogin.addEventListener("submit", async (e) => {
             e.preventDefault();
             const dniInput = document.getElementById("login-dni").value.trim();
             const claveInput = document.getElementById("login-clave").value.trim();
+            
+            const botonLogin = formLogin.querySelector("button[type='submit']");
+            const textoOriginal = botonLogin.innerText;
+            botonLogin.disabled = true;
+            botonLogin.innerText = "Verificando...";
 
             try {
                 const choferRef = doc(db, "repartidores", dniInput);
@@ -166,15 +213,18 @@
 
                     iniciarEscuchaDisponibles();
                 } else {
-                    alert("❌ DNI o clave incorrectos. Verificá los datos en Firestore.");
+                    alert("❌ Credenciales inválidas. Revisa el DNI y la clave.");
                 }
             } catch (error) {
                 console.error(error);
-                alert("Error al intentar iniciar sesión.");
+                alert("Error de conexión al validar tus datos.");
+            } finally {
+                botonLogin.disabled = false;
+                botonLogin.innerText = textoOriginal;
             }
         });
 
-        // 2. ESCUCHAR PEDIDOS DISPONIBLES EN TIEMPO REAL
+        // ESCUCHA ACTIVA DE NUEVOS VIAJES SOLICITADOS
         function iniciarEscuchaDisponibles() {
             const qDisponibles = query(collection(db, "pedidos"), where("estado", "==", "buscando_cadete"));
             
@@ -182,31 +232,41 @@
                 listaDisponiblesUI.innerHTML = "";
                 
                 if (snapshot.empty) {
-                    listaDisponiblesUI.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-4">Buscando nuevos pedidos entrantes...</p>`;
+                    listaDisponiblesUI.innerHTML = `
+                        <div class="flex flex-col items-center justify-center py-12 text-center px-4 border border-dashed border-slate-800 rounded-2xl bg-slate-900/10">
+                            <div class="w-2 h-2 rounded-full bg-blue-500 animate-ping mb-3"></div>
+                            <p class="text-xs text-slate-400 font-medium">Esperando asignaciones entrantes...</p>
+                        </div>
+                    `;
                     return;
                 }
 
                 snapshot.forEach((docSnap) => {
                     const viaje = docSnap.data();
                     const idDocumento = docSnap.id;
+                    const precioMostrar = viaje.precioEstimado || viaje.precioEstimated || "$0";
 
                     const div = document.createElement("div");
-                    // Tarjetas de ofertas individuales con fondo azul oscuro contrastado
-                    div.className = "bg-slate-900 border border-slate-700 p-4 rounded-xl space-y-3 shadow-md";
+                    div.className = "bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-4 shadow-md hover:border-slate-700 transition";
                     div.innerHTML = `
-                        <div class="text-xs text-slate-200 space-y-1">
-                            <p><strong class="text-blue-400">📦 Llevar:</strong> ${viaje.detalles}</p>
-                            <p><strong class="text-emerald-400">🟢 Desde:</strong> ${viaje.origen}</p>
-                            <p><strong class="text-rose-400">🔴 Hasta:</strong> ${viaje.destino}</p>
-                            <p class="text-base font-black text-yellow-400 mt-1">Pago: ${viaje.precioEstimado || viaje.precioEstimated}</p>
+                        <div class="text-xs text-slate-300 space-y-2">
+                            <p><strong class="text-blue-400 font-bold block text-[10px] uppercase tracking-wider mb-0.5">📦 Carga:</strong> ${viaje.detalles}</p>
+                            <p><strong class="text-emerald-400 font-bold block text-[10px] uppercase tracking-wider mb-0.5">🟢 Origen:</strong> ${viaje.origen}</p>
+                            <p><strong class="text-rose-400 font-bold block text-[10px] uppercase tracking-wider mb-0.5">🔴 Destino:</strong> ${viaje.destino}</p>
+                            <div class="pt-1 flex items-center justify-between">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pago Neto</span>
+                                <span class="text-base font-black text-yellow-400">${precioMostrar}</span>
+                            </div>
                         </div>
-                        <button class="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-2.5 rounded-lg transition tracking-wide btn-aceptar shadow">Aceptar Viaje</button>
+                        <button class="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-2.5 rounded-lg transition tracking-wide btn-aceptar shadow">
+                            Aceptar Viaje
+                        </button>
                     `;
 
                     div.querySelector(".btn-aceptar").addEventListener("click", async (e) => {
                         const boton = e.target;
                         boton.disabled = true;
-                        boton.innerText = "Tomando viaje...";
+                        boton.innerText = "Validando disponibilidad...";
 
                         const pedidoRef = doc(db, "pedidos", idDocumento);
 
@@ -223,7 +283,7 @@
                                         repartidorDni: choferLogueado.dni
                                     });
                                 } else {
-                                    throw "¡Demasiado tarde! Otro cadete ya tomó este viaje.";
+                                    throw "¡Demasiado tarde! Otro repartidor ya tomó este pedido.";
                                 }
                             });
 
@@ -231,7 +291,7 @@
                             document.getElementById("activo-origen").innerText = viaje.origen;
                             document.getElementById("activo-destino").innerText = viaje.destino;
                             document.getElementById("activo-detalles").innerText = viaje.detalles;
-                            document.getElementById("activo-precio").innerText = viaje.precioEstimado || viaje.precioEstimated;
+                            document.getElementById("activo-precio").innerText = precioMostrar;
 
                             pConsola.classList.add("hidden");
                             pViajeActivo.classList.remove("hidden");
@@ -250,7 +310,7 @@
             });
         }
 
-        // 3. EMULACIÓN / TRANSMISIÓN GPS EN TIEMPO REAL
+        // SISTEMA DE SEGUIMIENTO GPS EN TIEMPO REAL
         function comenzarTransmisionGPS(idPedido) {
             if (idIntervaloGps) clearInterval(idIntervaloGps);
 
@@ -258,16 +318,20 @@
                 if (navigator.geolocation) {
                     navigator.geolocation.getCurrentPosition(async (position) => {
                         const pedidoRef = doc(db, "pedidos", idPedido);
-                        await updateDoc(pedidoRef, {
-                            ubicacionRepartidor: {
-                                lat: position.coords.latitude,
-                                lng: position.coords.longitude
-                            }
-                        });
+                        try {
+                            await updateDoc(pedidoRef, {
+                                ubicacionRepartidor: {
+                                    lat: position.coords.latitude,
+                                    lng: position.coords.longitude
+                                }
+                            });
+                        } catch (error) {
+                            console.error("Error enviando telemetría GPS:", error);
+                        }
                     }, (error) => {
-                        console.warn("GPS falló, usando simulación segura.", error);
+                        console.warn("Señal GPS nativa no disponible, activando simulador fallback.", error);
                         simularGps(idPedido);
-                    }, { enableHighAccuracy: true });
+                    }, { enableHighAccuracy: true, timeout: 8000 });
                 } else {
                     simularGps(idPedido);
                 }
@@ -281,27 +345,61 @@
             const pedidoRef = doc(db, "pedidos", idPedido);
             updateDoc(pedidoRef, {
                 ubicacionRepartidor: {
-                    lat: -31.4167 + (Math.random() - 0.5) * 0.01,
-                    lng: -64.1833 + (Math.random() - 0.5) * 0.01
+                    lat: -31.4167 + (Math.random() - 0.5) * 0.002,
+                    lng: -64.1833 + (Math.random() - 0.5) * 0.002
                 }
-            });
+            }).catch(err => console.error("Error en tracker simulado:", err));
         }
 
-        // 4. COMPLETAR VIAJE Y VOLVER A CONSOLA
+        // CANCELAR VIAJE
+        document.getElementById("btn-cancelar-viaje").addEventListener("click", async () => {
+            if (!idViajeActivo) return;
+
+            const confirmar = confirm("¿Estás seguro de que deseas cancelar este viaje? El pedido volverá a estar disponible para otros repartidores.");
+            if (!confirmar) return;
+
+            if (idIntervaloGps) clearInterval(idIntervaloGps);
+
+            try {
+                const pedidoRef = doc(db, "pedidos", idViajeActivo);
+                
+                await updateDoc(pedidoRef, { 
+                    estado: "buscando_cadete",
+                    repartidorAsignado: deleteField(),
+                    repartidorDni: deleteField(),
+                    ubicacionRepartidor: deleteField() 
+                });
+
+                pViajeActivo.classList.add("hidden");
+                pConsola.classList.remove("hidden");
+                idViajeActivo = null;
+                
+                alert("🟢 Viaje liberado con éxito.");
+            } catch (error) {
+                console.error(error);
+                alert("Error al intentar cancelar el viaje en el servidor. Revisa tu conexión.");
+            }
+        });
+
+        // FINALIZACIÓN DEL VIAJE POR PARTE DEL CHOFER
         document.getElementById("btn-completar-viaje").addEventListener("click", async () => {
             if (!idViajeActivo) return;
 
             if (idIntervaloGps) clearInterval(idIntervaloGps);
 
-            const pedidoRef = doc(db, "pedidos", idViajeActivo);
-            await updateDoc(pedidoRef, { estado: "entregado" });
+            try {
+                const pedidoRef = doc(db, "pedidos", idViajeActivo);
+                await updateDoc(pedidoRef, { estado: "entregado" });
 
-            pViajeActivo.classList.add("hidden");
-            pConsola.classList.remove("hidden");
-            idViajeActivo = null;
+                pViajeActivo.classList.add("hidden");
+                pConsola.classList.remove("hidden");
+                idViajeActivo = null;
+            } catch (error) {
+                alert("Error al intentar cerrar el pedido en el servidor.");
+            }
         });
 
-        // 5. LOGOUT DEL PANEL
+        // CIERRE DE SESIÓN
         document.getElementById("btn-logout").addEventListener("click", () => {
             if (desapuntarDisponibles) desapuntarDisponibles();
             if (idIntervaloGps) clearInterval(idIntervaloGps);
@@ -309,7 +407,7 @@
             choferLogueado = null;
             idViajeActivo = null;
 
-            document.getElementById("form-login").reset();
+            formLogin.reset();
             pConsola.classList.add("hidden");
             pLogin.classList.remove("hidden");
         });
